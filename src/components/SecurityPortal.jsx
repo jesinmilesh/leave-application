@@ -13,7 +13,11 @@ import {
   VideoOff,
   History,
   FileText,
-  Filter
+  Filter,
+  RefreshCw,
+  Zap,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 
 export default function SecurityPortal({ 
@@ -31,9 +35,13 @@ export default function SecurityPortal({
   const [scannerFeedback, setScannerFeedback] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' (rear camera) or 'user' (front camera)
+  const [hasTorch, setHasTorch] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const norm = (s) => (s || '').toUpperCase().replace(/_/g, ' ');
 
@@ -55,44 +63,105 @@ export default function SecurityPortal({
     return matchesSearch;
   });
 
-  // Start Windows Laptop Web Camera Stream
-  const startCamera = async () => {
+  // Start Mobile & Laptop Web Camera Stream (Targeting Rear Camera by Default for Mobile Scans)
+  const startCamera = async (requestedFacing) => {
     setCameraError(null);
+    const targetFacing = requestedFacing || facingMode;
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
     try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-      } catch (e1) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      let stream = null;
+      const constraintOptions = [
+        { video: { facingMode: { ideal: targetFacing }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { video: { facingMode: targetFacing } },
+        { video: { facingMode: { exact: targetFacing } } },
+        { video: true }
+      ];
+
+      for (const opt of constraintOptions) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(opt);
+          if (stream) break;
+        } catch (e) {}
+      }
+
+      if (!stream) {
+        throw new Error('Could not access camera with provided video constraints.');
       }
 
       streamRef.current = stream;
+
+      const track = stream.getVideoTracks()[0];
+      if (track && track.getCapabilities) {
+        const capabilities = track.getCapabilities();
+        setHasTorch(!!capabilities.torch);
+      } else {
+        setHasTorch(false);
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
+        videoRef.current.setAttribute('muted', 'true');
+        await videoRef.current.play().catch(() => {});
       }
+
       setCameraActive(true);
-      setScannerFeedback({ type: 'info', text: '📷 Laptop Web Camera Active! Hold QR Code in front of camera.' });
+      setFacingMode(targetFacing);
+      setScannerFeedback({ 
+        type: 'info', 
+        text: `📷 Mobile ${targetFacing === 'environment' ? 'Rear Main' : 'Front Selfie'} Camera Active! Hold student QR Pass in viewfinder.` 
+      });
     } catch (err) {
       console.error('Camera Error:', err);
-      setCameraError('Unable to start laptop camera. Please verify Windows browser camera permissions.');
+      let errorMsg = 'Unable to start camera. Please verify browser camera permissions.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg = 'Camera permission denied. Please allow camera access in your browser settings.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMsg = 'No camera hardware found on this device.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMsg = 'Camera is in use by another app. Please close other camera applications.';
+      }
+      setCameraError(errorMsg);
       setCameraActive(false);
     }
   };
 
-  // Stop Web Camera Stream
+  const toggleCameraFacing = () => {
+    const nextFacing = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera(nextFacing);
+  };
+
+  const toggleTorch = async () => {
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+    if (track && track.applyConstraints) {
+      try {
+        const nextState = !torchOn;
+        await track.applyConstraints({
+          advanced: [{ torch: nextState }]
+        });
+        setTorchOn(nextState);
+      } catch (err) {
+        console.warn('Torch constraint error:', err);
+      }
+    }
+  };
+
+  // Stop Camera Stream
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     setCameraActive(false);
+    setTorchOn(false);
   };
 
-  // Clean up camera on unmount
   useEffect(() => {
     return () => {
       stopCamera();
@@ -117,12 +186,44 @@ export default function SecurityPortal({
       l.studentName?.toLowerCase().includes(query.toLowerCase())
     );
 
+    if (navigator.vibrate) {
+      try { navigator.vibrate([100, 50, 100]); } catch (e) {}
+    }
+
     if (found) {
       setSelectedLeave(found);
       setScannerFeedback({ type: 'success', text: `✓ Verified QR Pass Scanned: ${found.leaveId} • ${found.studentName}` });
     } else {
       setScannerFeedback({ type: 'info', text: `QR Code Scanned (${query}). Pass not found in active gate list.` });
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
+        if (code && code.data) {
+          processScannedData(code.data);
+        } else {
+          setScannerFeedback({ type: 'error', text: 'Could not detect a valid QR Code in the selected photo/image.' });
+        }
+      };
+      img.src = event.target?.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   // Continuous Camera Frame Barcode / QR Detection Loop using jsQR + Canvas
@@ -496,21 +597,26 @@ export default function SecurityPortal({
             </form>
           </div>
 
-          {/* Interactive Live Windows Web Camera QR Scanner */}
+          {/* Mobile Camera QR Scanner Panel */}
           <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Camera className="w-4 h-4 text-indigo-400" />
-                Live Windows Camera Scanner
+                <Camera className="w-4 h-4 text-emerald-400" />
+                📱 Mobile Camera QR Scanner
               </h3>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
-                cameraActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
-              }`}>
-                {cameraActive ? '● CAMERA LIVE' : 'CAMERA OFF'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-slate-900 text-emerald-300 border border-slate-800 uppercase">
+                  {facingMode === 'environment' ? '📱 REAR MAIN CAMERA' : '🤳 FRONT CAMERA'}
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+                  cameraActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {cameraActive ? '● CAMERA LIVE' : 'CAMERA OFF'}
+                </span>
+              </div>
             </div>
 
-            {/* Video Feed / Viewport */}
+            {/* Video Feed / Mobile Viewport */}
             <div className="relative aspect-video rounded-2xl bg-slate-950 border-2 border-emerald-500/40 flex flex-col items-center justify-center overflow-hidden shadow-2xl">
               {/* Always present video tag */}
               <video 
@@ -524,9 +630,9 @@ export default function SecurityPortal({
               {!cameraActive && (
                 <div className="flex flex-col items-center justify-center text-center p-4">
                   <QrCode className="w-12 h-12 text-emerald-400/80 mb-2 animate-pulse" />
-                  <p className="text-xs text-slate-200 font-bold z-10">Windows Optical Scanner Ready</p>
+                  <p className="text-xs text-slate-200 font-bold z-10">Mobile Phone Camera Scanner</p>
                   <p className="text-[10px] text-slate-400 max-w-xs mt-1">
-                    Click "Start Web Camera Scanner" or upload a pass image below.
+                    Tap "Start Mobile Camera" below to scan using your phone's rear camera, or pick a pass image from your photo gallery.
                   </p>
                 </div>
               )}
@@ -561,27 +667,72 @@ export default function SecurityPortal({
               </p>
             )}
 
-            {/* Camera Controls */}
-            <div className="flex items-center gap-2">
-              {!cameraActive ? (
+            {/* Mobile & Desktop Camera Controls */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {!cameraActive ? (
+                  <button
+                    type="button"
+                    onClick={() => startCamera()}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Start Mobile Camera</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={stopCamera}
+                    className="w-full py-3 bg-slate-800 hover:bg-rose-900/40 text-rose-300 hover:text-white border border-rose-500/30 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                  >
+                    <VideoOff className="w-4 h-4" />
+                    <span>Stop Camera</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={startCamera}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition"
+                  onClick={toggleCameraFacing}
+                  className="py-3 px-4 bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white border border-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
                 >
-                  <Camera className="w-4 h-4" />
-                  <span>Start Laptop Camera Scanner</span>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{facingMode === 'environment' ? 'Switch to Front Camera' : 'Switch to Rear Camera'}</span>
                 </button>
-              ) : (
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                {hasTorch && cameraActive && (
+                  <button
+                    type="button"
+                    onClick={toggleTorch}
+                    className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+                      torchOn
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-lg shadow-amber-500/20'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>{torchOn ? 'Flashlight ON' : 'Flashlight OFF'}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={stopCamera}
-                  className="w-full py-3 bg-slate-800 hover:bg-rose-900/40 text-rose-300 hover:text-white border border-rose-500/30 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
                 >
-                  <VideoOff className="w-4 h-4" />
-                  <span>Stop Camera</span>
+                  <ImageIcon className="w-4 h-4 text-emerald-400" />
+                  <span>Scan Pass Photo from Gallery</span>
                 </button>
-              )}
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
             </div>
 
             {/* Quick Demo QR Scan Buttons */}
