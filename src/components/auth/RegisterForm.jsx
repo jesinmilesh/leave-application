@@ -126,7 +126,7 @@ export default function RegisterForm({ onRegisterSuccess, onBackToLogin }) {
       {/* Role Selection Selector */}
       <div className="space-y-1.5">
         <label className="block text-xs font-semibold text-slate-300">Select Role</label>
-        <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
           {[
             { id: 'STUDENT', label: 'Student' },
             { id: 'MENTOR', label: 'Mentor' },
@@ -138,7 +138,7 @@ export default function RegisterForm({ onRegisterSuccess, onBackToLogin }) {
               key={r.id}
               type="button"
               onClick={() => setRole(r.id)}
-              className={`py-2 rounded-lg text-[11px] font-bold transition ${role === r.id
+              className={`py-2 rounded-lg text-xs font-bold transition ${role === r.id
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
                 }`}

@@ -22,10 +22,10 @@ export default function Navbar({
 
   return (
     <header className="no-print sticky top-0 z-40 glass-panel border-b border-slate-800/80 shadow-2xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         {/* Left: PEC Brand Logo & Title */}
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white p-1 shadow-md border border-indigo-500/30 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white p-1 shadow-md border border-indigo-500/30 flex items-center justify-center shrink-0">
             <img
               src={PEC_LOGO_URL}
               alt="Prathyusha Engineering College Logo"
@@ -33,41 +33,40 @@ export default function Navbar({
             />
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h1 className="text-xs sm:text-base font-extrabold tracking-tight text-white flex items-center gap-1.5 truncate">
                 PEC LEAVE PORTAL
-                <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase font-mono font-bold">
-                  {currentRole.toUpperCase()}
-                </span>
               </h1>
+              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase font-mono font-bold shrink-0">
+                {currentRole.toUpperCase()}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
+            <p className="text-[11px] text-slate-400 hidden sm:block truncate">
               Prathyusha Engineering College • Paperless Multi-Level Approval System
             </p>
           </div>
         </div>
 
         {/* Right User Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Active User Badge */}
-          <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-slate-900/90 border border-slate-800">
             {activeUser?.photoUrl ? (
-              <img src={activeUser.photoUrl} alt={activeUser.name} className="w-7 h-7 rounded-full object-cover border border-indigo-500/40" />
+              <img src={activeUser.photoUrl} alt={activeUser.name} className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-indigo-500/40 shrink-0" />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-bold text-xs">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-bold text-xs shrink-0">
                 {activeUser?.name?.[0] || 'U'}
               </div>
             )}
 
-            <div className="text-left">
+            <div className="text-left hidden sm:block">
               <p className="text-xs font-bold text-slate-100 truncate max-w-[140px]">{activeUser?.name || 'Logged User'}</p>
-              <p className="text-[10px] text-indigo-400 font-mono font-medium">
+              <p className="text-[10px] text-indigo-400 font-mono font-medium truncate">
                 {activeUser?.registerNo ? activeUser.registerNo : activeUser?.department || 'PEC'}
               </p>
             </div>
           </div>
-
 
           {/* Notifications Bell */}
           <div className="relative">
@@ -76,7 +75,7 @@ export default function Navbar({
               className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition relative"
               title="Notifications"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
               {notifications.length > 0 && unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
               )}
@@ -87,7 +86,7 @@ export default function Navbar({
 
             {/* Notifications Popover */}
             {showNotifs && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 glass-panel rounded-xl shadow-2xl border border-slate-700 z-50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-[-10px] sm:right-0 mt-2 w-[calc(100vw-32px)] max-w-sm glass-panel rounded-xl shadow-2xl border border-slate-700 z-50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                   <div className="flex items-center gap-2">
                     <Bell className="w-4 h-4 text-indigo-400" />

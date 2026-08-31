@@ -245,28 +245,28 @@ export default function AdminPortal() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+        <div className="w-full sm:w-auto flex items-center gap-1.5 overflow-x-auto bg-slate-900 p-1.5 rounded-xl border border-slate-800 shrink-0">
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
             User Directory
           </button>
           <button
             onClick={() => setActiveTab('mentors')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'mentors' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${activeTab === 'mentors' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
             Mentor Mappings
           </button>
           <button
             onClick={() => setActiveTab('depts')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'depts' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${activeTab === 'depts' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
             Departments
           </button>
           <button
             onClick={() => setActiveTab('bulk')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === 'bulk' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${activeTab === 'bulk' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
           >
             Bulk Import
           </button>
