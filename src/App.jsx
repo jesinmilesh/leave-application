@@ -75,7 +75,7 @@ export default function App() {
   }, []);
 
   // Connect Socket.IO with auto-reconnection and room joining
-  const { isConnected } = useSocket(isLoggedIn ? activeUser : null, handleSocketEvent);
+  const { isConnected, isWaking, reconnect } = useSocket(isLoggedIn ? activeUser : null, handleSocketEvent);
 
   // Live real-time leaves and principal dashboard hook
   const { leaves, setLeaves, dashboardData, refreshData } = useRealtime(
@@ -95,6 +95,14 @@ export default function App() {
     isLoggedIn ? activeUser : null,
     socketEvent
   );
+
+  // Automatically refresh data when socket connects / reconnects after server wake-up
+  useEffect(() => {
+    if (isConnected) {
+      refreshData();
+      refreshNotifications();
+    }
+  }, [isConnected, refreshData, refreshNotifications]);
 
   // Sync session state to LocalStorage
   useEffect(() => {
@@ -116,11 +124,15 @@ export default function App() {
             setActiveUser(res.user);
             setCurrentRole(getNormalizedRole(res.user.role));
             setIsLoggedIn(true);
-          } else {
+          } else if (res && (res.error || res.message)) {
+            // Explicit auth rejection from backend (e.g. invalid token)
             handleLogout();
+          } else {
+            // Server offline or Render cold-starting: keep saved user session intact
+            console.warn('Backend server cold-starting; preserving active user session.');
           }
-        } catch {
-          handleLogout();
+        } catch (e) {
+          console.warn('Network timeout during auth check; preserving local session:', e);
         }
       } else {
         setIsLoggedIn(false);
@@ -329,10 +341,23 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>© 2026 Prathyusha Engineering College • Digital Leave Permission Management System</p>
           <div className="flex items-center gap-2 font-mono text-[11px] font-bold">
-            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : isWaking ? 'bg-amber-400 animate-ping' : 'bg-amber-400'}`}></span>
             <span className={isConnected ? 'text-emerald-400' : 'text-amber-400'}>
-              {isConnected ? 'System Status: Operational' : 'Connecting to System...'}
+              {isConnected
+                ? 'System Status: Operational'
+                : isWaking
+                  ? 'Waking Server & Connecting...'
+                  : 'Connecting to System...'}
             </span>
+            {!isConnected && (
+              <button
+                onClick={reconnect}
+                title="Tap to force wake server and reconnect"
+                className="ml-1 px-2 py-0.5 text-[10px] bg-indigo-950/80 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded font-sans transition-all active:scale-95"
+              >
+                ⚡ Wake & Retry
+              </button>
+            )}
           </div>
         </div>
       </footer>

@@ -147,6 +147,16 @@ export async function changePasswordApi(userId, newPassword) {
 }
 
 
+export async function wakeServerApi() {
+  try {
+    const healthUrl = API_BASE.replace(/\/api$/, '') + '/health';
+    const res = await fetch(healthUrl, { method: 'GET', cache: 'no-store' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function getMeApi() {
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
