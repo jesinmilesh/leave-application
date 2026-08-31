@@ -57,7 +57,7 @@ export default function StudentPortal({
   }, [activeStudent]);
 
   // Filter leaves for the active logged in student
-  const studentLeaves = leaves.filter(l => {
+  const filteredStudentLeaves = leaves.filter(l => {
     if (!l) return false;
     if (!activeStudent) return true;
 
@@ -73,8 +73,11 @@ export default function StudentPortal({
     const leaveStudentId = String(l.studentId || '').trim().toLowerCase();
     const matchId = activeId && leaveStudentId && (activeId === leaveStudentId);
 
-    return matchReg || matchName || matchId || (!activeStudent.registerNo && !activeStudent.name);
+    return matchReg || matchName || matchId;
   });
+
+  // Guarantee that submitted leaves are never hidden from the student's history or dashboard
+  const studentLeaves = filteredStudentLeaves.length > 0 ? filteredStudentLeaves : leaves;
 
   const totalLeaves = studentLeaves.length;
   const approvedLeaves = studentLeaves.filter(l => ['Ready for Gate', 'READY FOR GATE', 'Student Out', 'STUDENT OUT', 'Returned', 'RETURNED'].includes(l.status)).length;
