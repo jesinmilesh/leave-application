@@ -59,14 +59,94 @@ export async function createMentorAssignment(req, res) {
 export async function getAllUsers(req, res) {
   try {
     const users = await prisma.user.findMany({
-      include: { student: true },
+      include: {
+        student: true,
+        mentor: true,
+        hod: true,
+        staff: true
+      },
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(users);
+    const formattedUsers = users.map(u => ({
+      id: u.id,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt,
+      name: u.student?.fullName || u.mentor?.fullName || u.hod?.fullName || u.staff?.fullName || u.name || 'User',
+      department: u.student?.department || u.mentor?.department || u.hod?.department || u.department || 'N/A',
+      registerNumber: u.student?.registerNumber || null
+    }));
+
+    res.json(formattedUsers);
   } catch (error) {
     console.error('Get All Users Error:', error);
     res.status(500).json({ error: 'Failed to fetch users list.' });
+  }
+}
+
+export async function updateUser(req, res) {
+  try {
+    const { userId, name, email, role, department } = req.body;
+    if (!userId) return res.status(400).json({ error: 'User ID is required' });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { student: true, mentor: true, hod: true, staff: true }
+    });
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: email || user.email,
+        role: role || user.role
+      }
+    });
+
+    if (user.student) {
+      await prisma.student.update({
+        where: { userId },
+        data: { fullName: name || user.student.fullName, department: department || user.student.department }
+      });
+    } else if (user.mentor) {
+      await prisma.mentor.update({
+        where: { userId },
+        data: { fullName: name || user.mentor.fullName, department: department || user.mentor.department }
+      });
+    } else if (user.hod) {
+      await prisma.hOD.update({
+        where: { userId },
+        data: { fullName: name || user.hod.fullName, department: department || user.hod.department }
+      });
+    } else if (user.staff) {
+      await prisma.staff.update({
+        where: { userId },
+        data: { fullName: name || user.staff.fullName, role: role || user.staff.role }
+      });
+    }
+
+    res.json({ message: 'User updated successfully', user: updatedUser });
+  } catch (error) {
+    console.error('Update User Error:', error);
+    res.status(500).json({ error: 'Failed to update user.' });
+  }
+}
+
+export async function deleteUser(req, res) {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'User ID is required' });
+
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete User Error:', error);
+    res.status(500).json({ error: 'Failed to delete user.' });
   }
 }
 

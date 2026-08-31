@@ -228,6 +228,20 @@ app.get(
   adminController.getAllUsers
 );
 
+app.put(
+  '/api/admin/users',
+  authenticateToken,
+  authorizeRoles('ADMIN'),
+  adminController.updateUser
+);
+
+app.delete(
+  '/api/admin/users/:id',
+  authenticateToken,
+  authorizeRoles('ADMIN'),
+  adminController.deleteUser
+);
+
 app.post(
   '/api/admin/bulk-users',
   authenticateToken,

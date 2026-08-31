@@ -303,6 +303,31 @@ export async function fetchAllUsersApi() {
   }
 }
 
+export async function updateUserApi(userData) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: 'Failed to update user.' };
+  }
+}
+
+export async function deleteUserApi(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return await res.json();
+  } catch (error) {
+    return { error: 'Failed to delete user.' };
+  }
+}
+
 export async function bulkImportUsersApi(users) {
   try {
     const res = await fetch(`${API_BASE}/admin/bulk-users`, {
