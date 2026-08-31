@@ -102,7 +102,7 @@ export default function App() {
       refreshData();
       refreshNotifications();
     }
-  }, [isConnected, refreshData, refreshNotifications]);
+  }, [isConnected]);
 
   // Sync session state to LocalStorage
   useEffect(() => {

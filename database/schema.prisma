@@ -1,7 +1,7 @@
 // Prathyusha Engineering College - Digital Leave Permission Management System (PEC DLPMS) Schema
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 generator client {

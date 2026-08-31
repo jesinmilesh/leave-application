@@ -19,7 +19,7 @@ export function useRealtime(user, socketEvent) {
       if (Array.isArray(data)) setLeaves(data);
     }
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     loadData();
