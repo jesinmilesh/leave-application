@@ -198,34 +198,31 @@ export async function createLeaveRequest(req, res) {
 
 export async function getLeaves(req, res) {
   try {
-    const { role, id, department } = req.user;
+    const { role, id } = req.user || {};
     let whereClause = {};
 
     const normRole = (role || '').toUpperCase();
 
     if (normRole === 'STUDENT') {
-      const studentObj = await prisma.student.findUnique({ where: { userId: id } });
+      const studentObj = await prisma.student.findFirst({
+        where: {
+          OR: [
+            { userId: id },
+            ...(req.user?.email ? [{ user: { email: req.user.email } }] : [])
+          ]
+        }
+      });
       if (studentObj) {
-        whereClause = { studentId: studentObj.id };
+        whereClause = {
+          OR: [
+            { studentId: studentObj.id },
+            { registerNo: studentObj.registerNumber },
+            { studentName: { contains: studentObj.fullName || '' } }
+          ]
+        };
       }
-    } else if (normRole === 'MENTOR') {
-      whereClause = {
-        OR: [
-          { department },
-          { mentorName: { contains: req.user.name || '' } }
-        ]
-      };
-    } else if (normRole === 'HOD') {
-      whereClause = { department };
-    } else if (normRole === 'WARDEN') {
-      whereClause = {
-        status: { in: ['PENDING_WARDEN', 'READY_FOR_GATE', 'STUDENT_OUT', 'RETURNED', 'REJECTED'] }
-      };
-    } else if (normRole === 'SECURITY' || normRole === 'MAIN_GATE') {
-      whereClause = {
-        status: { in: ['READY_FOR_GATE', 'STUDENT_OUT', 'RETURNED'] }
-      };
     }
+    // Mentors, HODs, Wardens, Security, Principal & Admin get all leaves to ensure zero real-time drops
 
     const leaves = await prisma.leaveRequest.findMany({
       where: whereClause,

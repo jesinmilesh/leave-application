@@ -56,13 +56,24 @@ export default function StudentPortal({
     }
   }, [activeStudent]);
 
-  // Filter leaves STRICTLY for the active logged in student
+  // Filter leaves for the active logged in student
   const studentLeaves = leaves.filter(l => {
-    if (!activeStudent) return false;
-    const matchReg = activeStudent.registerNo && l.registerNo === activeStudent.registerNo;
-    const matchName = activeStudent.name && l.studentName.toLowerCase().trim() === activeStudent.name.toLowerCase().trim();
-    const matchId = activeStudent.id && l.studentId === activeStudent.id;
-    return matchReg || matchName || matchId;
+    if (!l) return false;
+    if (!activeStudent) return true;
+
+    const activeReg = String(activeStudent.registerNo || '').replace(/\D/g, '');
+    const leaveReg = String(l.registerNo || '').replace(/\D/g, '');
+    const matchReg = activeReg && leaveReg && (activeReg === leaveReg || activeReg.includes(leaveReg) || leaveReg.includes(activeReg));
+
+    const activeName = String(activeStudent.name || '').trim().toLowerCase();
+    const leaveName = String(l.studentName || '').trim().toLowerCase();
+    const matchName = activeName && leaveName && (activeName.includes(leaveName) || leaveName.includes(activeName));
+
+    const activeId = String(activeStudent.id || '').trim().toLowerCase();
+    const leaveStudentId = String(l.studentId || '').trim().toLowerCase();
+    const matchId = activeId && leaveStudentId && (activeId === leaveStudentId);
+
+    return matchReg || matchName || matchId || (!activeStudent.registerNo && !activeStudent.name);
   });
 
   const totalLeaves = studentLeaves.length;

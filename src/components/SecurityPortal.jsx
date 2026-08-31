@@ -35,7 +35,6 @@ export default function SecurityPortal({
   const [scannerFeedback, setScannerFeedback] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
-  const [facingMode, setFacingMode] = useState('environment'); // 'environment' (rear camera) or 'user' (front camera)
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
 
@@ -63,10 +62,9 @@ export default function SecurityPortal({
     return matchesSearch;
   });
 
-  // Start Mobile & Laptop Web Camera Stream (Targeting Rear Camera by Default for Mobile Scans)
-  const startCamera = async (requestedFacing) => {
+  // Start Mobile Web Camera Stream (STRICTLY Rear Main Camera Only)
+  const startCamera = async () => {
     setCameraError(null);
-    const targetFacing = requestedFacing || facingMode;
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -75,10 +73,11 @@ export default function SecurityPortal({
 
     try {
       let stream = null;
+      // Strictly target mobile rear/environment camera
       const constraintOptions = [
-        { video: { facingMode: { ideal: targetFacing }, width: { ideal: 1280 }, height: { ideal: 720 } } },
-        { video: { facingMode: targetFacing } },
-        { video: { facingMode: { exact: targetFacing } } },
+        { video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { video: { facingMode: 'environment' } },
         { video: true }
       ];
 
@@ -90,7 +89,7 @@ export default function SecurityPortal({
       }
 
       if (!stream) {
-        throw new Error('Could not access camera with provided video constraints.');
+        throw new Error('Could not access rear main camera.');
       }
 
       streamRef.current = stream;
@@ -111,29 +110,23 @@ export default function SecurityPortal({
       }
 
       setCameraActive(true);
-      setFacingMode(targetFacing);
       setScannerFeedback({ 
         type: 'info', 
-        text: `📷 Mobile ${targetFacing === 'environment' ? 'Rear Main' : 'Front Selfie'} Camera Active! Hold student QR Pass in viewfinder.` 
+        text: '📷 Mobile Rear Camera Active! Hold student QR Pass in viewfinder.' 
       });
     } catch (err) {
       console.error('Camera Error:', err);
-      let errorMsg = 'Unable to start camera. Please verify browser camera permissions.';
+      let errorMsg = 'Unable to start rear camera. Please verify browser camera permissions.';
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         errorMsg = 'Camera permission denied. Please allow camera access in your browser settings.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        errorMsg = 'No camera hardware found on this device.';
+        errorMsg = 'No rear camera found on this device.';
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         errorMsg = 'Camera is in use by another app. Please close other camera applications.';
       }
       setCameraError(errorMsg);
       setCameraActive(false);
     }
-  };
-
-  const toggleCameraFacing = () => {
-    const nextFacing = facingMode === 'environment' ? 'user' : 'environment';
-    startCamera(nextFacing);
   };
 
   const toggleTorch = async () => {
@@ -602,11 +595,11 @@ export default function SecurityPortal({
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-400" />
-                📱 Mobile Camera QR Scanner
+                📱 Mobile Rear Camera QR Scanner
               </h3>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-slate-900 text-emerald-300 border border-slate-800 uppercase">
-                  {facingMode === 'environment' ? '📱 REAR MAIN CAMERA' : '🤳 FRONT CAMERA'}
+                  📱 REAR CAMERA
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
                   cameraActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
@@ -630,9 +623,9 @@ export default function SecurityPortal({
               {!cameraActive && (
                 <div className="flex flex-col items-center justify-center text-center p-4">
                   <QrCode className="w-12 h-12 text-emerald-400/80 mb-2 animate-pulse" />
-                  <p className="text-xs text-slate-200 font-bold z-10">Mobile Phone Camera Scanner</p>
+                  <p className="text-xs text-slate-200 font-bold z-10">Mobile Rear Camera Scanner</p>
                   <p className="text-[10px] text-slate-400 max-w-xs mt-1">
-                    Tap "Start Mobile Camera" below to scan using your phone's rear camera, or pick a pass image from your photo gallery.
+                    Tap "Start Rear Camera" below to scan using your phone's rear camera, or pick a pass image from your photo gallery.
                   </p>
                 </div>
               )}
@@ -667,38 +660,27 @@ export default function SecurityPortal({
               </p>
             )}
 
-            {/* Mobile & Desktop Camera Controls */}
+            {/* Mobile Rear Camera Controls */}
             <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {!cameraActive ? (
-                  <button
-                    type="button"
-                    onClick={() => startCamera()}
-                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span>Start Mobile Camera</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={stopCamera}
-                    className="w-full py-3 bg-slate-800 hover:bg-rose-900/40 text-rose-300 hover:text-white border border-rose-500/30 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
-                  >
-                    <VideoOff className="w-4 h-4" />
-                    <span>Stop Camera</span>
-                  </button>
-                )}
-
+              {!cameraActive ? (
                 <button
                   type="button"
-                  onClick={toggleCameraFacing}
-                  className="py-3 px-4 bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white border border-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                  onClick={() => startCamera()}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>{facingMode === 'environment' ? 'Switch to Front Camera' : 'Switch to Rear Camera'}</span>
+                  <Camera className="w-4 h-4" />
+                  <span>Start Rear Camera</span>
                 </button>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="w-full py-3 bg-slate-800 hover:bg-rose-900/40 text-rose-300 hover:text-white border border-rose-500/30 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                >
+                  <VideoOff className="w-4 h-4" />
+                  <span>Stop Camera</span>
+                </button>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 {hasTorch && cameraActive && (
