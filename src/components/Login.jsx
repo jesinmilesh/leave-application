@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import { Lock, Download, Smartphone } from 'lucide-react';
 import LoginForm from './auth/LoginForm';
 import RegisterForm from './auth/RegisterForm';
 import ForgotPassword from './auth/ForgotPassword';
-import { usePWAInstall } from '../hooks/usePWAInstall';
 
 export default function Login({ onLogin }) {
   const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'forgot'
-  const { handleInstall, isInstalled } = usePWAInstall();
 
   const handleLoginSuccess = (role, userData) => {
     onLogin(role, userData);
@@ -45,17 +42,6 @@ export default function Login({ onLogin }) {
                 Digital Leave Permission Portal
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleInstall}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold border border-blue-400/30 shadow-lg active:scale-95 transition"
-              title="Download & Install PEC Web App"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-300 animate-bounce" />
-              <span>{isInstalled ? 'App Installed' : 'Install Web App'}</span>
-            </button>
           </div>
         </div>
       </header>

@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import {
   Bell,
-  Download,
   LogOut,
   CheckCircle2,
 } from 'lucide-react';
-import { usePWAInstall } from '../hooks/usePWAInstall';
 import { PEC_LOGO_URL } from '../mockData';
 
 export default function Navbar({
@@ -20,7 +18,6 @@ export default function Navbar({
   onOpenNotification
 }) {
   const [showNotifs, setShowNotifs] = useState(false);
-  const { handleInstall, isInstalled } = usePWAInstall();
 
 
   return (
@@ -70,16 +67,6 @@ export default function Navbar({
               </p>
             </div>
           </div>
-
-          {/* Install Web App Button */}
-          <button
-            onClick={handleInstall}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold border border-blue-400/30 shadow-md transition active:scale-95"
-            title="Download & Install PEC Leave Portal Web App"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-300 animate-bounce" />
-            <span>{isInstalled ? 'App Installed' : 'Install App'}</span>
-          </button>
 
 
           {/* Notifications Bell */}
