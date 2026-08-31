@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -268,15 +269,24 @@ app.post(
   adminController.forceLogoutUser
 );
 
-// Production Static Client File Serving & SPA Fallback
+// Production Static Client File Serving & API Fallback
 const distPath = path.join(__dirname, '../../dist');
 app.use(express.static(distPath));
 
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
-    return res.sendFile(path.join(distPath, 'index.html'), (err) => {
-      if (err) next();
-    });
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    } else {
+      return res.json({
+        status: 'online',
+        institution: 'Prathyusha Engineering College',
+        system: 'PEC Digital Leave Permission Portal API & Socket.IO Engine',
+        healthCheck: '/health',
+        version: '3.0.0'
+      });
+    }
   }
   next();
 });
