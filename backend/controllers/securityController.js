@@ -108,6 +108,7 @@ export async function markExit(req, res) {
     try {
       const io = getIO();
       const payload = result.updated;
+      io.emit(SOCKET_EVENTS.STUDENT_EXITED, payload);
       io.to(SOCKET_ROOMS.STUDENT(leave.studentId)).emit(SOCKET_EVENTS.STUDENT_EXITED, payload);
       io.to(SOCKET_ROOMS.SECURITY).emit(SOCKET_EVENTS.STUDENT_EXITED, payload);
       io.to(SOCKET_ROOMS.PRINCIPAL).emit(SOCKET_EVENTS.STUDENT_EXITED, payload);
@@ -218,6 +219,7 @@ export async function markReturn(req, res) {
     try {
       const io = getIO();
       const payload = result.updated;
+      io.emit(SOCKET_EVENTS.STUDENT_RETURNED, payload);
       io.to(SOCKET_ROOMS.STUDENT(leave.studentId)).emit(SOCKET_EVENTS.STUDENT_RETURNED, payload);
       io.to(SOCKET_ROOMS.SECURITY).emit(SOCKET_EVENTS.STUDENT_RETURNED, payload);
       io.to(SOCKET_ROOMS.PRINCIPAL).emit(SOCKET_EVENTS.STUDENT_RETURNED, payload);

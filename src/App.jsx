@@ -163,17 +163,21 @@ export default function App() {
   // Workflow Handlers using Backend APIs
   const handleSubmitLeave = async (newLeaveData) => {
     const res = await submitLeaveApi(newLeaveData);
-    if (res && res.leave) {
-      setLeaves(prev => [res.leave, ...prev]);
+    const createdLeave = (res && res.leave) ? res.leave : (res && res.leaveId ? res : null);
+    if (createdLeave) {
+      setLeaves(prev => {
+        const exists = prev.some(l => l.leaveId === createdLeave.leaveId);
+        return exists ? prev.map(l => l.leaveId === createdLeave.leaveId ? createdLeave : l) : [createdLeave, ...prev];
+      });
     } else {
-      setLeaves(prev => [{
+      const fallbackLeave = {
         ...newLeaveData,
-        leaveId: `PEC-${(newLeaveData.department || 'CSE').replace(/[^A-Za-z0-9]/g, '').toUpperCase()}_${Math.floor(100000 + Math.random() * 900000)}`,
+        leaveId: newLeaveData.leaveId || `PEC-${(newLeaveData.department || 'CSE').replace(/[^A-Za-z0-9]/g, '').toUpperCase()}_${Math.floor(100000 + Math.random() * 900000)}`,
         status: 'PENDING_MENTOR',
         createdAt: new Date().toISOString()
-      }, ...prev]);
+      };
+      setLeaves(prev => [fallbackLeave, ...prev]);
     }
-    refreshData();
   };
 
   const handleApprove = async (leaveId, role, comment) => {
