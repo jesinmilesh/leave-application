@@ -221,8 +221,23 @@ export async function getLeaves(req, res) {
           ]
         };
       }
+    } else if (normRole === 'MENTOR') {
+      // Mentors see ONLY their assigned leave requests (filtered by mentorId in DB)
+      const mentorObj = await prisma.mentor.findFirst({ where: { userId: id } });
+      if (mentorObj) {
+        whereClause = { mentorId: mentorObj.id };
+      }
+    } else if (normRole === 'HOD') {
+      // HOD sees department leaves from PENDING_HOD onwards
+      const hodObj = await prisma.hOD.findFirst({ where: { userId: id } });
+      if (hodObj) {
+        whereClause = {
+          department: { contains: hodObj.department || '' },
+          status: { in: ['PENDING_HOD', 'PENDING_WARDEN', 'READY_FOR_GATE', 'STUDENT_OUT', 'RETURNED', 'REJECTED'] }
+        };
+      }
     }
-    // Mentors, HODs, Wardens, Security, Principal & Admin get all leaves to ensure zero real-time drops
+    // Wardens, Security, Principal & Admin see all leaves (whereClause stays empty = all)
 
     const leaves = await prisma.leaveRequest.findMany({
       where: whereClause,

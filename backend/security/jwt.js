@@ -10,6 +10,7 @@ export function generateAccessToken(user) {
   const payload = {
     id: user.id,
     role: user.role,
+    name: user.name || user.mentor?.fullName || user.hod?.fullName || user.student?.fullName || user.staff?.fullName || user.email,
     department: user.department,
     email: user.email
   };

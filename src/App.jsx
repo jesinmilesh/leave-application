@@ -190,14 +190,21 @@ export default function App() {
       const res = await submitLeaveApi(newLeaveData);
       const createdLeave = (res && res.leave) ? res.leave : (res && res.leaveId ? res : null);
       if (createdLeave) {
+        // Replace optimistic entry with real DB entry
         setLeaves(prev => prev.map(l => (l.leaveId === autoLeaveId || l.leaveId === createdLeave.leaveId) ? createdLeave : l));
+      } else {
+        console.warn('Leave submission response:', res);
       }
+      // Refresh all data from DB to sync student history and trigger mentor dashboard
+      await refreshData();
     } catch (e) {
       console.warn('Backend submission persistence notice:', e);
+      await refreshData();
     }
   };
 
   const handleApprove = async (leaveId, role, comment) => {
+    // Optimistic update
     setLeaves(prev => prev.map(l => {
       if (l.leaveId !== leaveId) return l;
       let nextStatus = l.status;
@@ -207,11 +214,15 @@ export default function App() {
       return { ...l, status: nextStatus };
     }));
 
-    if (role === 'Mentor') await approveMentorApi(leaveId, comment);
-    if (role === 'HOD') await approveHodApi(leaveId, comment);
-    if (role === 'Warden') await approveWardenApi(leaveId, comment);
-
-    refreshData();
+    try {
+      if (role === 'Mentor') await approveMentorApi(leaveId, comment);
+      if (role === 'HOD') await approveHodApi(leaveId, comment);
+      if (role === 'Warden') await approveWardenApi(leaveId, comment);
+    } catch (e) {
+      console.warn('Approval API error:', e);
+    }
+    // Always re-fetch real DB state after approval
+    await refreshData();
   };
 
   const handleBulkApprove = async (leaveIds, role, comment) => {
