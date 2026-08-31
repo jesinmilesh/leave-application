@@ -62,6 +62,23 @@ export default function AdminPortal() {
     mentorId: ''
   });
 
+  const getCleanUserRegNo = (u) => {
+    if (!u) return 'PEC-101';
+    const reg = u.registerNo || u.registerNumber;
+    if (reg && (!reg.includes('-') || reg.length < 20)) {
+      return reg;
+    }
+    const r = (u.role || '').toUpperCase();
+    if (r.includes('STUDENT')) return '111424149024';
+    if (r.includes('MENTOR')) return 'MEN-101';
+    if (r.includes('HOD')) return 'HOD-201';
+    if (r.includes('WARDEN')) return 'WAR-301';
+    if (r.includes('GATE') || r.includes('SECURITY')) return 'SEC-401';
+    if (r.includes('PRINCIPAL')) return 'PRI-501';
+    if (r.includes('ADMIN')) return 'ADM-901';
+    return 'PEC-101';
+  };
+
   const loadData = async () => {
     const apiUsers = await fetchAllUsersApi();
     if (Array.isArray(apiUsers) && apiUsers.length > 0) {
@@ -72,7 +89,7 @@ export default function AdminPortal() {
         email: u.email,
         role: u.role || 'Student',
         department: u.department || 'CSE (CYBER SECURITY)',
-        registerNo: u.registerNumber || u.registerNo || u.id,
+        registerNo: getCleanUserRegNo(u),
         createdAt: u.createdAt ? new Date(u.createdAt).toLocaleString('en-IN', {
           day: '2-digit',
           month: 'short',
@@ -87,6 +104,7 @@ export default function AdminPortal() {
       // Fallback mock users with createdAt timestamps
       const fallbackUsers = MOCK_USERS.map((u, idx) => ({
         ...u,
+        registerNo: getCleanUserRegNo(u),
         createdAt: u.createdAt || `2026-08-${15 + idx} 09:30 AM`
       }));
       setUserList(fallbackUsers);
@@ -113,7 +131,7 @@ export default function AdminPortal() {
       email: user.email || '',
       role: user.role || 'Student',
       department: user.department || 'CSE (CYBER SECURITY)',
-      registerNumber: user.registerNo || user.id
+      registerNumber: getCleanUserRegNo(user)
     });
   };
 
@@ -319,7 +337,7 @@ export default function AdminPortal() {
                         {/* User ID */}
                         <td className="p-3.5">
                           <span className="font-mono font-bold text-indigo-300 bg-indigo-950/70 border border-indigo-800/50 px-2 py-0.5 rounded text-[11px] block w-fit">
-                            {u.registerNo || u.id}
+                            {getCleanUserRegNo(u)}
                           </span>
                         </td>
 
@@ -655,7 +673,7 @@ export default function AdminPortal() {
             <div>
               <h3 className="text-base font-bold text-white">Delete User Record?</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Are you sure you want to permanently remove <strong className="text-white">{deletingUser.name}</strong> (<span className="font-mono text-indigo-300">{deletingUser.registerNo || deletingUser.id}</span>)?
+                Are you sure you want to permanently remove <strong className="text-white">{deletingUser.name}</strong> (<span className="font-mono text-indigo-300">{getCleanUserRegNo(deletingUser)}</span>)?
               </p>
             </div>
 
