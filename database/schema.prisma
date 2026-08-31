@@ -1,0 +1,180 @@
+// Prathyusha Engineering College - Digital Leave Permission Management System (PEC DLPMS) Schema
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Common Authentication Model
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          String   // STUDENT, MENTOR, HOD, WARDEN, MAIN_GATE, PRINCIPAL, ADMIN
+  isFirstLogin  Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student       Student?
+  mentor        Mentor?
+  hod           HOD?
+  staff         Staff?
+
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+}
+
+// 2. Separate Students Model
+model Student {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName       String
+  registerNumber String   @unique
+  department     String
+  year           String
+  section        String
+  hostelBlock    String?  @default("Block A - Boys Hostel")
+  roomNo         String?  @default("AG-NO")
+  mentorId       String?
+  mentor         Mentor?  @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+
+  leaves         LeaveRequest[]
+}
+
+// 3. Separate Mentors Model
+model Mentor {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
+  department String
+
+  students   Student[]
+}
+
+// 4. Separate HOD Model
+model HOD {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
+  department String
+}
+
+// 5. Shared Staff Model (Warden, Main Gate, Principal, Admin)
+model Staff {
+  id       String @id @default(uuid())
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName String
+  role     String // WARDEN, MAIN_GATE, PRINCIPAL, ADMIN
+}
+
+// 6. Leave Requests Model
+model LeaveRequest {
+  leaveId       String       @id // Unique: PEC-{Dept}-{6Digits}
+  studentId     String
+  student       Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentName   String
+  registerNo    String
+  department    String
+  year          String
+  section       String
+  mentorId      String?
+  mentorName    String?
+  hodName       String?
+  wardenName    String?
+  leaveType     String
+  subject       String
+  reason        String
+  fromDate      String
+  toDate        String
+  outDate       String
+  outTime       String
+  returnDate    String
+  returnTime    String
+  parentPhone   String
+  parentConsent Boolean      @default(true)
+  hostelBlock   String?      @default("Block A - Kaveri Hostel")
+  roomNo        String?      @default("A-304")
+  photoUrl      String?
+  status        String       @default("PENDING_MENTOR") // PENDING_MENTOR, PENDING_HOD, PENDING_WARDEN, READY_FOR_GATE, STUDENT_OUT, RETURNED, REJECTED
+  remarks       String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  history       ApprovalHistory[]
+  gateLog       GateLog?
+}
+
+// 7. Approval History Model
+model ApprovalHistory {
+  id          String       @id @default(uuid())
+  leaveId     String
+  leave       LeaveRequest @relation(fields: [leaveId], references: [leaveId], onDelete: Cascade)
+  action      String       // SUBMITTED, APPROVED, REJECTED, EXITED, RETURNED
+  actedByRole String       // STUDENT, MENTOR, HOD, WARDEN, MAIN_GATE, PRINCIPAL, ADMIN
+  actedByName String
+  actedById   String?
+  remarks     String?
+  timestamp   DateTime     @default(now())
+}
+
+// 8. Gate Audit Logs Model
+model GateLog {
+  id          String       @id @default(uuid())
+  leaveId     String       @unique
+  leave       LeaveRequest @relation(fields: [leaveId], references: [leaveId], onDelete: Cascade)
+  studentName String
+  registerNo  String
+  actionType  String?      // EXIT, ENTRY
+  scannedBy   String?
+  exitTime    DateTime?
+  returnTime  DateTime?
+}
+
+// 9. Notifications Model
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole String?
+  leaveId    String?
+  title      String
+  message    String
+  type       String?  @default("INFO")
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// 10. Department Master Model
+model Department {
+  code String @id
+  name String
+}
+
+// 11. Infrastructure Support Models
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  role      String?
+  action    String
+  details   String?
+  ipAddress String?
+  device    String?
+  createdAt DateTime @default(now())
+}
+

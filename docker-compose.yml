@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dlpms_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: dlpms_user
+      POSTGRES_PASSWORD: dlpms_password
+      POSTGRES_DB: dlpms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dlpms_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: "postgresql://dlpms_user:dlpms_password@postgres:5432/dlpms_db?schema=public"
+      JWT_SECRET: "dlpms-super-secret-jwt-key-2026"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

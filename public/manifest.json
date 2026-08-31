@@ -1,0 +1,15 @@
+{
+  "short_name": "PEC Leave Portal",
+  "name": "PEC Digital Leave Permission Portal",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f3974",
+  "theme_color": "#0f3974",
+  "display": "standalone"
+}
