@@ -160,23 +160,40 @@ export default function App() {
     localStorage.removeItem('pec_currentRole');
   };
 
-  // Workflow Handlers using Backend APIs
+  // Workflow Handlers using Backend APIs with instant real-time state updates
   const handleSubmitLeave = async (newLeaveData) => {
-    const res = await submitLeaveApi(newLeaveData);
-    const createdLeave = (res && res.leave) ? res.leave : (res && res.leaveId ? res : null);
-    if (createdLeave) {
-      setLeaves(prev => {
-        const exists = prev.some(l => l.leaveId === createdLeave.leaveId);
-        return exists ? prev.map(l => l.leaveId === createdLeave.leaveId ? createdLeave : l) : [createdLeave, ...prev];
-      });
-    } else {
-      const fallbackLeave = {
-        ...newLeaveData,
-        leaveId: newLeaveData.leaveId || `PEC-${(newLeaveData.department || 'CSE').replace(/[^A-Za-z0-9]/g, '').toUpperCase()}_${Math.floor(100000 + Math.random() * 900000)}`,
-        status: 'PENDING_MENTOR',
-        createdAt: new Date().toISOString()
-      };
-      setLeaves(prev => [fallbackLeave, ...prev]);
+    const autoLeaveId = newLeaveData.leaveId || `PEC-${(newLeaveData.department || 'CSE').replace(/[^A-Za-z0-9]/g, '').toUpperCase()}_${Math.floor(100000 + Math.random() * 900000)}`;
+    const optimisticLeave = {
+      ...newLeaveData,
+      leaveId: autoLeaveId,
+      status: 'PENDING_MENTOR',
+      createdAt: new Date().toISOString(),
+      history: [
+        {
+          actedByRole: 'STUDENT',
+          actedByName: newLeaveData.studentName || activeUser?.name || 'Jesin Milesh',
+          action: 'SUBMITTED',
+          remarks: 'Leave request submitted via student portal.',
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    // 1. Instant 0ms local state update for real-time responsiveness across all portals
+    setLeaves(prev => {
+      const exists = prev.some(l => l.leaveId === autoLeaveId);
+      return exists ? prev : [optimisticLeave, ...prev];
+    });
+
+    // 2. Async backend API call & global database sync
+    try {
+      const res = await submitLeaveApi(newLeaveData);
+      const createdLeave = (res && res.leave) ? res.leave : (res && res.leaveId ? res : null);
+      if (createdLeave) {
+        setLeaves(prev => prev.map(l => (l.leaveId === autoLeaveId || l.leaveId === createdLeave.leaveId) ? createdLeave : l));
+      }
+    } catch (e) {
+      console.warn('Backend submission persistence notice:', e);
     }
   };
 
@@ -186,7 +203,7 @@ export default function App() {
       let nextStatus = l.status;
       if (role === 'Mentor') nextStatus = 'PENDING_HOD';
       if (role === 'HOD') nextStatus = 'PENDING_WARDEN';
-      if (role === 'Warden') nextStatus = 'APPROVED';
+      if (role === 'Warden') nextStatus = 'READY_FOR_GATE';
       return { ...l, status: nextStatus };
     }));
 

@@ -24,7 +24,10 @@ export default function MentorPortal({
   const norm = (s) => (s || '').toUpperCase().replace(/_/g, ' ');
 
   const mentorLeaves = leaves;
-  const pendingLeaves = mentorLeaves.filter(l => norm(l.status) === 'PENDING MENTOR');
+  const pendingLeaves = mentorLeaves.filter(l => {
+    const s = norm(l.status);
+    return s === 'PENDING MENTOR' || s === 'PENDING_MENTOR' || s === 'PENDING' || s === 'SUBMITTED' || s.includes('MENTOR');
+  });
   const displayedLeaves = filterStatus === 'pending' ? pendingLeaves : mentorLeaves;
 
   const handleActionClick = (leave, type) => {
